@@ -1,0 +1,78 @@
+# escape=`
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2019
+
+ARG TAG=v3.4.0
+ARG PYVER=3.10.8
+
+SHELL ["cmd", "/S", "/C"]
+
+
+COPY vs_collect.cmd C:/
+
+RUN    curl -SL --output collect.exe https://aka.ms/vscollect.exe `
+    && curl -SL --output tool.exe https://aka.ms/vs/16/release/vs_buildtools.exe `
+    && curl -SL --output slik.zip https://sliksvn.com/pub/Slik-Subversion-1.14.2-x64.zip `
+    && curl -SL --output git.exe  https://github.com/git-for-windows/git/releases/download/v2.39.0.windows.2/Git-2.39.0.2-64-bit.exe `
+    && curl -SL --output nuget.exe   https://aka.ms/nugetclidl `
+    && tar -xf slik.zip
+
+# Install SlikSVN, Git, Python
+# And set system PATH
+RUN Slik-Subversion-1.14.2-x64.msi `
+    && git.exe /VERYSILENT `
+    && nuget.exe install python -ExcludeVersion -Version %PYVER% -OutputDirectory . `
+    && setx /M PATH "%PATH%;%ProgramFiles%\SlikSvn\bin;%ProgramFiles%\Git\bin;C:\python\tools;C:\python\tools\Scripts"
+
+# Git clone Blender source
+RUN mkdir blender-bpy `
+    && cd blender-bpy `
+    && git clone --depth 1 --branch %TAG% https://github.com/blender/blender.git `
+    && cd blender `
+    && git checkout -b %TAG%
+
+# Use the latest release channel.
+ADD https://aka.ms/vs/16/release/channel C:\VisualStudio.chman
+
+# (Desktop development with C++)
+# Install Build Tools with the Microsoft.VisualStudio.Workload.VCTools workload,
+# excluding workloads and components with known issues.
+RUN call vs_collect.cmd tool.exe --quiet --wait --norestart --nocache install `
+        --installPath "%ProgramFiles(x86)%\Microsoft Visual Studio\2019\BuildTools" `
+        --channelUri C:\VisualStudio.chman `
+        --installChannelUri C:\VisualStudio.chman `
+        --add Microsoft.VisualStudio.Workload.VCTools;includeRecommended `
+        --remove Microsoft.VisualStudio.Component.Windows10SDK.10240 `
+        --remove Microsoft.VisualStudio.Component.Windows10SDK.10586 `
+        --remove Microsoft.VisualStudio.Component.Windows10SDK.14393 `
+        --remove Microsoft.VisualStudio.Component.Windows81SDK
+
+# Cleanup
+RUN del /q `
+    collect.exe `
+    tool.exe `
+    slik.zip `
+    git.exe `
+    nuget.exe `
+    Slik-Subversion-1.14.2-x64.msi
+
+# Download libraries.
+# That 2019b is for `VSWHERE_ARGS`, so vswhere can return VS installed path.
+#  (build with visual studio 2019 Build Tools)
+RUN cd blender-bpy/blender `
+    && echo y| make.bat 2019b update
+
+
+RUN cd blender-bpy/blender `
+    && git submodule update --init
+
+# CMake not found...
+# RUN cd blender-bpy/blender `
+#     && make.bat 2019b bpy
+
+
+WORKDIR blender-bpy/blender
+
+# Starts the developer command prompt CMD shell.
+# ENTRYPOINT ["C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\Common7\\Tools\\VsDevCmd.bat", "&&", "cmd.exe"]
+ENTRYPOINT ["C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Auxiliary\\Build\\vcvars64.bat", "&&", "cmd.exe"]
