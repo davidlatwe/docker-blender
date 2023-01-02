@@ -57,10 +57,10 @@ RUN mkdir blender-build `
 
 # Apply patch
 #
-COPY blender-windows.gitpatch C:/
+COPY blender-windows.patch C:/
 ENV BLENDER_VERSION $VERSION
 RUN cd blender-build/blender `
-    && git apply C:/blender-windows.gitpatch
+    && git apply C:/blender-windows.patch
 
 # Download libraries. NOTE: "svn: E175012: Connection timed out" may happen.
 #
