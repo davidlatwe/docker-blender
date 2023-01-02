@@ -1,0 +1,17 @@
+Index: build_files/windows/check_libraries.cmd
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/build_files/windows/check_libraries.cmd b/build_files/windows/check_libraries.cmd
+--- a/build_files/windows/check_libraries.cmd	(revision ef9ca44dee7fe3e25089dbfc49c69e9eff83ba5a)
++++ b/build_files/windows/check_libraries.cmd	(date 1672526726864)
+@@ -19,7 +19,7 @@
+ 			echo Downloading %BUILD_VS_SVNDIR% libraries, please wait.
+ 			echo.
+ :RETRY			
+-			"%SVN%" checkout https://svn.blender.org/svnroot/bf-blender/trunk/lib/%BUILD_VS_SVNDIR% %BUILD_VS_LIBDIR%
++			"%SVN%" checkout https://svn.blender.org/svnroot/bf-blender/tags/blender-%BLENDER_VERSION%-release/lib/%BUILD_VS_SVNDIR% %BUILD_VS_LIBDIR%
+ 			if errorlevel 1 (
+ 				set /p LibRetry= "Error during download, retry? y/n"
+ 				if /I "!LibRetry!"=="Y" (
